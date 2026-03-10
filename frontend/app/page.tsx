@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -18,21 +18,59 @@ import {
 } from "@/components/ui/select";
 import Link from "next/link";
 
+interface NewsItem {
+  id: number;
+  ticker: string;
+  headline: string;
+  summary: string;
+  sentiment: number;
+}
+
 export default function Dashboard() {
-  const [data, setData] = useState([]);
-  const [selectedTicker, setSelectedTicker] = useState("NVDA");
+  const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [newTicker, setNewTicker] = useState("");
+  const [selectedTicker, setSelectedTicker] = useState<string>("");
+  const [data, setData] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Fetch watchlist on load
   useEffect(() => {
+    fetch('http://localhost:8000/watchlist')
+      .then(res => res.json())
+      .then((list) => {
+        setWatchlist(list);
+        if (list.length > 0) {
+          setSelectedTicker(prev => prev || list[0]);
+        }
+      });
+  }, []);
+
+  // Fetch news data when selectedTicker changes
+  const fetchNews = useCallback(async () => {
+    if (!selectedTicker) return;
     setIsLoading(true);
-    fetch(`http://localhost:8000/feed/${selectedTicker}`)
-      .then((res) => res.json())
-      .then((result) => {
-        setData(Array.isArray(result) ? result : []);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
-  }, [selectedTicker]); // Re-fetch whenever ticker changes
+    try {
+      const res = await fetch(`http://localhost:8000/feed/${selectedTicker}`);
+      const json = await res.json();
+      setData(Array.isArray(json) ? json : []);
+    } catch (error) {
+      console.error("Failed to fetch news:", error);
+      setData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedTicker]);
+
+  useEffect(() => {
+    fetchNews();
+  }, [fetchNews]);
+
+  const addToWatchlist = async () => {
+    if (!newTicker) return;
+    await fetch(`http://localhost:8000/watchlist/${newTicker}`, { method: 'POST' });
+    setWatchlist([...watchlist, newTicker.toUpperCase()]);
+    setNewTicker("");
+  };
 
   return (
     <div className="p-8 bg-slate-950 min-h-screen text-white">
@@ -47,16 +85,24 @@ export default function Dashboard() {
             Monitoring:
           </span>
           <Select value={selectedTicker} onValueChange={setSelectedTicker}>
-            <SelectTrigger className="w-[180px] bg-slate-900 border-slate-800 text-white">
-              <SelectValue placeholder="Select Ticker" />
+            <SelectTrigger className="w-[180px] bg-slate-900">
+              <SelectValue placeholder="Ticker" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-900 border-slate-800 text-white">
-              <SelectItem value="NVDA">NVIDIA (NVDA)</SelectItem>
-              <SelectItem value="AAPL">Apple (AAPL)</SelectItem>
-              <SelectItem value="TSLA">Tesla (TSLA)</SelectItem>
-              <SelectItem value="MSFT">Microsoft (MSFT)</SelectItem>
+            <SelectContent className="bg-slate-900 text-white">
+              {watchlist.map(t => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          <div className="flex gap-2 mt-4">
+            <input 
+              value={newTicker} 
+              onChange={(e) => setNewTicker(e.target.value)}
+              className="bg-slate-900 border border-slate-700 px-2 py-1 rounded"
+              placeholder="Add Ticker (e.g. MSFT)"
+            />
+            <button onClick={addToWatchlist} className="bg-blue-600 px-3 py-1 rounded">Add</button>
+          </div>
         </div>
       </div>
 
@@ -93,7 +139,7 @@ export default function Dashboard() {
                 </TableCell>
               </TableRow>
             ) : (
-              data.map((item: any, i: number) => (
+              data.map((item: NewsItem, i: number) => (
                 <TableRow
                   key={i}
                   className="border-slate-800 hover:bg-slate-800/30 transition-colors"
