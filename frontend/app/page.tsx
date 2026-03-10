@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/select";
 import Link from "next/link";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface NewsItem {
   id: number;
   ticker: string;
@@ -35,7 +37,7 @@ export default function Dashboard() {
 
   // Fetch watchlist on load
   useEffect(() => {
-    fetch('http://localhost:8000/watchlist')
+    fetch(`${API_URL}/watchlist`)
       .then(res => res.json())
       .then((list) => {
         setWatchlist(list);
@@ -50,7 +52,7 @@ export default function Dashboard() {
     if (!selectedTicker) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`http://localhost:8000/feed/${selectedTicker}`);
+      const res = await fetch(`${API_URL}/feed/${selectedTicker}`);
       const json = await res.json();
       setData(Array.isArray(json) ? json : []);
     } catch (error) {
@@ -67,7 +69,7 @@ export default function Dashboard() {
 
   const addToWatchlist = async () => {
     if (!newTicker) return;
-    await fetch(`http://localhost:8000/watchlist/${newTicker}`, { method: 'POST' });
+    await fetch(`${API_URL}/watchlist/${newTicker}`, { method: 'POST' });
     setWatchlist([...watchlist, newTicker.toUpperCase()]);
     setNewTicker("");
   };

@@ -15,6 +15,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface Article {
   id: string;
   ticker: string;
@@ -42,13 +44,13 @@ export default function NewsDetail() {
   useEffect(() => {
     if (params.id) {
       // Fetch article details
-      fetch(`http://localhost:8000/article/${params.id}`)
+      fetch(`${API_URL}/article/${params.id}`)
         .then((res) => res.json())
         .then((data) => {
           setArticle(data);
           // Fetch sentiment history for the ticker
           if (data?.ticker) {
-            fetch(`http://localhost:8000/history/${data.ticker}`)
+            fetch(`${API_URL}/history/${data.ticker}`)
               .then((res) => res.json())
               .then(setChartData)
               .catch(() => setChartData([]));
