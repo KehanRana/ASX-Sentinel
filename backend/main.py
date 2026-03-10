@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from database import SessionLocal, NewsEntry, init_db
+from sqlalchemy import func
+from database import SessionLocal, NewsEntry, Watchlist, init_db
 from processor import analyze_content
 from alerts import send_sentiment_email
 import uuid
@@ -109,3 +110,23 @@ async def get_article(article_id: str):
     article = db.query(NewsEntry).filter(NewsEntry.id == article_id).first()
     db.close()
     return article
+
+@app.post("/watchlist/{ticker}")
+async def add_to_watchlist(ticker: str):
+    db = SessionLocal()
+    ticker = ticker.upper()
+    # Check if already exists
+    exists = db.query(Watchlist).filter(Watchlist.ticker == ticker).first()
+    if not exists:
+        new_item = Watchlist(id=str(uuid.uuid4()), user_id="default_user", ticker=ticker)
+        db.add(new_item)
+        db.commit()
+    db.close()
+    return {"status": "added", "ticker": ticker}
+
+@app.get("/watchlist")
+async def get_watchlist():
+    db = SessionLocal()
+    items = db.query(Watchlist).all()
+    db.close()
+    return [i.ticker for i in items]

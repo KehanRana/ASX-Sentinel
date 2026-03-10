@@ -7,15 +7,20 @@ load_dotenv()
 
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 BACKEND_URL = "http://127.0.0.1:8000/analyze"
-WATCHLIST = ["NVIDIA", "Apple", "Tesla", "Microsoft"] # Use names for better news search
 
 def fetch_free_news():
+    try:
+        watchlist_res = requests.get("http://127.0.0.1:8000/watchlist")
+        current_watchlist = watchlist_res.json()
+    except:
+        current_watchlist = ["NVDA"]    # Fallback
+    
     print(f"--- Fetching NewsAPI at {time.strftime('%H:%M:%S')} ---")
     
-    for company in WATCHLIST:
+    for ticker in current_watchlist:
         # Search for news from the last 24 hours
         url = (f"https://newsapi.org/v2/everything?"
-               f"q={company}&"
+               f"q={ticker}&"
                f"language=en&"
                f"sortBy=publishedAt&"
                f"pageSize=2&" # Just get the 2 latest to save tokens
@@ -33,9 +38,9 @@ def fetch_free_news():
             for art in articles:
                 # Map NewsAPI fields to your Backend
                 ticker_map = {"NVIDIA": "NVDA", "Apple": "AAPL", "Tesla": "TSLA", "Microsoft": "MSFT"}
-                ticker = ticker_map.get(company)
+                mapped_ticker = ticker_map.get(ticker, ticker)
                 
-                params = {"ticker": ticker, "headline": art["title"]}
+                params = {"ticker": mapped_ticker, "headline": art["title"]}
                 payload = {"full_text": art["description"] or art["title"]}
                 
                 res = requests.post(BACKEND_URL, params=params, json=payload)
