@@ -18,7 +18,12 @@ class NewsEntry(Base):
     sentiment = Column(Float)
     metrics = Column(JSON)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    
+
+class Watchlist(Base):
+    __tablename__ = "watchlists"
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, index=True) # For now, use 'default_user' until we add Auth
+    ticker = Column(String, index=True)
 
 def init_db():
     Base.metadata.create_all(bind=engine)
