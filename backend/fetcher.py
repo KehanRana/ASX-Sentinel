@@ -8,13 +8,13 @@ load_dotenv()
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 
 # NEW: Look for a production URL first, default to localhost for local testing
-API_BASE_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
-BACKEND_URL = f"{API_BASE_URL}/analyze"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+BACKEND_URL = f"{API_URL}/analyze"
 
 def fetch_free_news():
     try:
         # NEW: Use the dynamic URL instead of hardcoded 127.0.0.1
-        watchlist_res = requests.get(f"{API_BASE_URL}/watchlist")
+        watchlist_res = requests.get(f"{API_URL}/watchlist")
         current_watchlist = watchlist_res.json()
     except Exception as e:
         print(f"⚠️ Watchlist fetch failed ({e}). Using fallback.")
